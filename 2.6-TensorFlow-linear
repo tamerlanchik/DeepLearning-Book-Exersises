@@ -1,0 +1,52 @@
+# Import `tensorflow`
+import tensorflow as tf, numpy as np
+import matplotlib.pyplot as plt
+
+n_samples, batch_size, num_steps = 1000, 100, 20*10**2
+X_data = np.random.uniform(1, 10,  (n_samples, 1))
+y_data = (2*X_data + 1) + np.random.normal(0, 10, (n_samples, 1))
+init=tf.global_variables_initializer()
+
+X = tf.placeholder(tf.float32, shape=(batch_size, 1))
+Y = tf.placeholder(tf.float32, shape=(batch_size, 1))
+with tf.variable_scope("linear-regression"):
+    k = tf.Variable(tf.random_normal((1,1)), name='slope')
+    b = tf.Variable(tf.zeros((1,)), name='bias')
+
+y_pred = tf.matmul(X, k) + b
+loss = tf.reduce_sum( (Y - y_pred)**2 )
+optimizer = tf.train.GradientDescentOptimizer(10**(-4)).minimize(loss)
+
+loss_story = np.zeros([num_steps, 1])
+display_step = 100
+with tf.Session() as sess:
+    global k_val, b_val
+    sess.run(tf.global_variables_initializer())
+    print(sess.run(k))
+    print(sess.run(b))
+    for i in range(num_steps):
+        #   Choice indices set for take a batch from points array
+        indices = np.random.choice(n_samples, batch_size)
+        #   Taking a batch
+        X_batch, y_batch = X_data[indices], y_data[indices]
+        _, loss_val, k_val, b_val = sess.run([ optimizer, loss, k, b],
+                 feed_dict={X: X_batch, Y : y_batch})
+        loss_story[i] = loss_val
+        if(i+1)%display_step == 0:
+            print('Epoch %d: loss=%.8f, k=%.4f, b=%.4f' %
+                  (i+1, loss_val, k_val, b_val))
+
+# Points data graph
+fig = plt.figure()
+x=np.arange(1, 10, 0.01)
+y = 2*x+1
+plot = plt.plot(x, y, color='r', linewidth=0.5)
+y_pred = k_val[0]*x+b_val
+plot = plt.plot(x, y_pred, color='g', linewidth=0.5)
+scatter1 = plt.scatter(X_data, y_data, marker='.', s=4, alpha=0.3)
+
+# Loss graph
+fig2 = plt.figure()
+t = np.arange(1, num_steps+1)
+plot = plt.plot(t, loss_story, linewidth=0.5)
+plt.show()

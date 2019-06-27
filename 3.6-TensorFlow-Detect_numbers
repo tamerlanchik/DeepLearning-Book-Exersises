@@ -1,4 +1,3 @@
-# Example №1
 from tensorflow.examples.tutorials.mnist import input_data
 import tensorflow as tf
 import matplotlib.pyplot as plt
@@ -17,7 +16,7 @@ W = tf.Variable(tf.zeros([IMAGE_SIDE**2, CLASS_COUNT]), name='weights')    # 28*
 b = tf.Variable(tf.zeros([CLASS_COUNT]), name='bias')
 
 # model
-y = tf.nn.softmax(tf.matmul(x, W) + b)  # nn - 'Neural Network'
+y = tf.nn.softmax(tf.matmul(x, W) + b)  # nn - 'Neural Network', sigmoid activate function
 
 # loss function
 y_ = tf.placeholder(tf.float32, [None, CLASS_COUNT], name='labels')   # label - right answer

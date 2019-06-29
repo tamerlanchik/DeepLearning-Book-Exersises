@@ -1,0 +1,70 @@
+from tensorflow.examples.tutorials.mnist import input_data
+import tensorflow as tf
+import matplotlib.pyplot as plt
+import numpy as np
+
+CLASS_COUNT = 10
+IMAGE_SIDE = 28
+HORIZONTAL_DIM = 1
+RELU_ITEMS_COUNT = 100
+LAYER_PORTS_COUNT = [IMAGE_SIDE**2, RELU_ITEMS_COUNT, CLASS_COUNT]
+
+# Get MNIST. 'one_hot' mode means label like [0,0,0,1,0,0,0,0,0,0] of lenght=10
+# that is a mask containing the only '1'- the right answer
+mnist = input_data.read_data_sets("MNIST_data/", one_hot=True)
+
+# input
+x = tf.placeholder(tf.float32, [None, LAYER_PORTS_COUNT[0]], name='images') # 'None' means any length
+
+#----- I layer --------
+# ReLU
+W_relu = tf.Variable(tf.truncated_normal([LAYER_PORTS_COUNT[0], LAYER_PORTS_COUNT[1]], stddev=0.1))
+b_relu = tf.Variable(tf.truncated_normal([LAYER_PORTS_COUNT[1]], stddev=0.1))
+# model ReLU layer
+h = tf.nn.relu(tf.matmul(x, W_relu) + b_relu)     # nn - 'Neural Network'
+
+# Dropout block
+keep_probability = tf.placeholder(tf.float32)
+h_drop = tf.nn.dropout(h, keep_probability)
+
+#----- II layer --------
+# SoftMax
+W = tf.Variable(tf.zeros([LAYER_PORTS_COUNT[1], LAYER_PORTS_COUNT[2]]), name='weights')
+b = tf.Variable(tf.zeros([LAYER_PORTS_COUNT[2]]), name='bias')
+# model SoftMax layer
+y = tf.nn.softmax(tf.matmul(h_drop, W) + b)   # sigmoid activate function
+
+# Loss function
+y_ = tf.placeholder(tf.float32, [None, LAYER_PORTS_COUNT[2]], name='labels')   # label - right answer
+cross_entropy = tf.reduce_mean(         #average of whole the samples set
+    -tf.reduce_sum(
+        y_ * tf.log(y),                 #multiply-by-components
+        reduction_indices=[1])          # reduce_sum across (horizontal) by probably classes (10)
+)
+
+train_step = tf.train.GradientDescentOptimizer(0.5).minimize(cross_entropy)
+
+# Testing results
+correct_prediction = tf.equal(tf.argmax(y, HORIZONTAL_DIM), tf.argmax(y_, HORIZONTAL_DIM))
+accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
+BATCH_SIZE = 100
+STEPS_COUNT = 3000
+accuracy_story = np.zeros([STEPS_COUNT, HORIZONTAL_DIM])
+
+with tf.Session() as sess:
+    sess.run(tf.global_variables_initializer())
+    for i in range(STEPS_COUNT):
+        batch_xs, batch_ys = mnist.train.next_batch(BATCH_SIZE)
+        sess.run(train_step, feed_dict={x: batch_xs, y_: batch_ys, keep_probability: 0.5})
+
+        if i%100 == 0:
+            accuracy_estimate = sess.run(accuracy, feed_dict={x: mnist.test.images, y_: mnist.test.labels, keep_probability: 1.})
+            accuracy_story[i] = accuracy_estimate
+            print("Точность: %s" % accuracy_estimate)
+# accuracy history display
+steps = np.arange(1, STEPS_COUNT+1)
+fig1 = plt.figure()
+plot = plt.plot(steps, accuracy_story, linewidth=0.5)
+plt.show()
+
